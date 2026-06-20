@@ -1,0 +1,27 @@
+image:
+  tag: "5f9aaf5"
+
+probes:
+  liveness:
+    timeoutSeconds: 1
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    timeoutSeconds: 1
+    periodSeconds: 10
+    failureThreshold: 3
+  startup:
+    timeoutSeconds: 1
+    periodSeconds: 5
+    failureThreshold: 12
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+pdb:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: null
