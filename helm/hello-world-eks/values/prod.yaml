@@ -48,4 +48,3 @@ hpa:
 pdb:
   enabled: true
   minAvailable: 1
-  maxUnavailable: null
