@@ -13,31 +13,31 @@ containerPort: 8080
 
 resources:
   requests:
-    cpu: 100m
-    memory: 64Mi
+    cpu: 50m
+    memory: 32Mi
   limits:
-    cpu: 500m
-    memory: 128Mi
+    cpu: 200m
+    memory: 64Mi
 
 probes:
   liveness:
     path: /healthz
     initialDelaySeconds: 2
-    timeoutSeconds: 2
-    periodSeconds: 15
+    timeoutSeconds: 1
+    periodSeconds: 10
     failureThreshold: 3
   readiness:
     path: /healthz
     initialDelaySeconds: 2
-    timeoutSeconds: 2
+    timeoutSeconds: 1
     periodSeconds: 10
     failureThreshold: 3
   startup:
     path: /healthz
     initialDelaySeconds: 0
-    timeoutSeconds: 2
+    timeoutSeconds: 1
     periodSeconds: 5
-    failureThreshold: 30
+    failureThreshold: 12
 
 hpa:
   enabled: true
@@ -47,5 +47,5 @@ hpa:
 
 pdb:
   enabled: true
-  minAvailable: null
-  maxUnavailable: 1
+  minAvailable: 1
+  maxUnavailable: null
