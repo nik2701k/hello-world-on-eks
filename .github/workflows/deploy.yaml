@@ -1,0 +1,47 @@
+name: deploy
+
+on:
+  workflow_run:
+    workflows: ["build-and-push"]
+    types: [completed]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-south-1
+      CLUSTER_NAME: hello-world-eks
+      NAMESPACE: app
+      RELEASE: hello-world
+      VERSION: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
+
+      - name: Substitute image version
+        run: sed -i "s/<VERSION>/${VERSION}/" helm/hello-world-eks/values/dev.yaml
+
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install "$RELEASE" helm/hello-world-eks \
+            --namespace "$NAMESPACE" \
+            -f helm/hello-world-eks/values/dev.yaml \
+            --wait --timeout 5m
