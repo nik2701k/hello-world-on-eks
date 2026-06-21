@@ -59,3 +59,27 @@ Build the arm64 image:
 ```bash
 docker buildx build --platform linux/arm64 -t <image>:<tag> app/
 ```
+
+## Helm chart
+
+The `helm/hello-world-eks/` chart deploys the application to the cluster. There is no default `values.yaml`; environment values live under `values/` and must be passed explicitly with `-f`.
+
+### What it deploys
+
+- **Deployment** — runs the app image with liveness, readiness, and startup probes (all HTTP `GET /healthz`).
+- **Service** — type `LoadBalancer`, which provisions an internet-facing AWS Classic Load Balancer and exposes the app on port 80.
+- **ServiceAccount** for the pods.
+- **HorizontalPodAutoscaler** — scales the Deployment between 1 and 2 replicas at 80% CPU (relies on metrics-server, which the Terraform installs as a cluster add-on).
+- **PodDisruptionBudget** — keeps at least one pod available during voluntary disruptions.
+- **Ingress** — included but disabled by default.
+
+### Per-environment values
+
+`values/dev.yaml` and `values/prod.yaml` are complete, in-sync values files (image, resources, probes, autoscaling, PDB). Pass one with `-f`.
+
+### Usage
+
+```bash
+helm upgrade --install hello-world helm/hello-world-eks \
+  -f helm/hello-world-eks/values/dev.yaml
+```
