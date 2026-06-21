@@ -1,7 +1,7 @@
 region             = "ap-south-1"
 aws_profile        = "project"
 cluster_name       = "hello-world-eks"
-kubernetes_version = "1.32"
+kubernetes_version = "1.35"
 
 # Network config
 vpc_id = "vpc-0406ef03cbd3dab63"
