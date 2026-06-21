@@ -34,8 +34,12 @@ module "eks" {
       configuration_values = jsonencode({ controller = { replicaCount = 1 } })
     }
     metrics-server = {
-      most_recent          = true
-      configuration_values = jsonencode({ replicas = 1 })
+      most_recent = true
+      # Default add-on port is 10251, which the EKS node security group does not
+      # open from the control plane, so API aggregation/discovery times out and
+      # the HPA reports cpu <unknown>. 4443 is already opened by the EKS-managed
+      # node SG rule for metrics-server.
+      configuration_values = jsonencode({ replicas = 1, containerPort = 4443 })
     }
   }
 
