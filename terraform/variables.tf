@@ -19,7 +19,7 @@ variable "cluster_name" {
 variable "kubernetes_version" {
   description = "EKS control-plane Kubernetes version. Use a current STANDARD-support version to avoid the extended-support surcharge."
   type        = string
-  default     = "1.32"
+  default     = "1.35"
 }
 
 variable "tags" {
