@@ -21,21 +21,6 @@ module "eks" {
   authentication_mode                      = "API_AND_CONFIG_MAP"
   enable_cluster_creator_admin_permissions = true
 
-  access_entries = {
-    github_actions = {
-      principal_arn = "arn:aws:iam::826784631306:role/github-actions-hello-world-eks"
-      policy_associations = {
-        app_edit = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
-          access_scope = {
-            type       = "namespace"
-            namespaces = ["app"]
-          }
-        }
-      }
-    }
-  }
-
   cluster_addons = {
     coredns = {
       most_recent          = true
