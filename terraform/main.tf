@@ -22,7 +22,10 @@ module "eks" {
   enable_cluster_creator_admin_permissions = true
 
   cluster_addons = {
-    coredns                = { most_recent = true }
+    coredns = {
+      most_recent          = true
+      configuration_values = jsonencode({ replicaCount = 1 })
+    }
     kube-proxy             = { most_recent = true }
     vpc-cni                = { most_recent = true }
     eks-pod-identity-agent = { most_recent = true }
