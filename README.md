@@ -8,7 +8,7 @@ The `terraform/` directory provisions the EKS cluster and everything the workloa
 
 ### What it provisions
 
-- An EKS cluster (Kubernetes `1.32`), built on the `terraform-aws-modules/eks/aws` module, with both public and private API endpoint access enabled.
+- An EKS cluster (Kubernetes `1.35`), built on the `terraform-aws-modules/eks/aws` module, with both public and private API endpoint access enabled.
 - One EKS managed node group (`default`) running ARM Graviton `t4g.large` instances on the `AL2023_ARM_64_STANDARD` AMI, on-demand capacity, with a 20 GiB root volume. It scales between a minimum of 1 and a maximum of 2 nodes (desired 1).
 - The cluster IAM role for the control plane and the node IAM role for the managed node group (both created by the module).
 - Cluster add-ons: CoreDNS, kube-proxy, VPC CNI, the EKS Pod Identity agent, and the AWS EBS CSI driver. The EBS CSI driver gets a dedicated IAM role (`ebs-csi.tf`) that is bound to the `kube-system/ebs-csi-controller-sa` service account through an EKS Pod Identity association.
@@ -83,3 +83,17 @@ The `helm/hello-world-eks/` chart deploys the application to the cluster. There 
 helm upgrade --install hello-world helm/hello-world-eks \
   -f helm/hello-world-eks/values/dev.yaml
 ```
+
+## CI/CD
+
+A GitHub Actions workflow (`.github/workflows/build.yaml`) builds the container image and pushes it to ECR on every merge to `main` (it also triggers on changes under `app/` and `helm/`, and supports manual `workflow_dispatch`).
+
+It authenticates to AWS with **GitHub OIDC** — no long-lived AWS keys are stored. The workflow assumes an IAM role via OIDC:
+
+- Role ARN: `arn:aws:iam::826784631306:role/github-actions-hello-world-eks`
+- OIDC provider: `token.actions.githubusercontent.com`; trust scoped to this repository (`repo:nik2701k/hello-world-on-eks:*`), audience `sts.amazonaws.com`.
+- Permissions: push to the `hello-world` ECR repository (ECR auth + layer upload + PutImage).
+
+The role ARN, ECR registry, and repository are supplied via repository **secrets** — `AWS_ROLE_ARN`, `ECR_REGISTRY`, `ECR_REPOSITORY`.
+
+Steps: assume the role (OIDC) → log in to ECR → build the `linux/arm64` image (QEMU + Buildx) → push tags `<git-sha>` and `latest`. This covers the **CI** (build + publish) half; the CD (deploy) part is not wired up yet.
