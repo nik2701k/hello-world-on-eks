@@ -26,8 +26,14 @@ module "eks" {
     kube-proxy             = { most_recent = true }
     vpc-cni                = { most_recent = true }
     eks-pod-identity-agent = { most_recent = true }
-    aws-ebs-csi-driver     = { most_recent = true }
-    metrics-server         = { most_recent = true }
+    aws-ebs-csi-driver = {
+      most_recent          = true
+      configuration_values = jsonencode({ controller = { replicaCount = 1 } })
+    }
+    metrics-server = {
+      most_recent          = true
+      configuration_values = jsonencode({ replicas = 1 })
+    }
   }
 
   eks_managed_node_groups = {
