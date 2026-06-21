@@ -113,3 +113,12 @@ Runs automatically after a successful `build-and-push` run (`workflow_run` trigg
 ## Monitoring
 
 Prometheus and Grafana monitoring is documented in [monitoring/README.md](monitoring/README.md).
+
+## Known limitations and notes
+
+- **Out-of-band resources.** The VPC and subnets, the internet gateway and route tables, the ECR repository, the S3 bucket used for Terraform state, and the GitHub Actions OIDC IAM role with its EKS access entry are created manually via the AWS CLI — they are not managed by this Terraform. The Terraform assumes they already exist (the VPC and subnet IDs are set in `tfvars`), and the `app` namespace is created manually before deploying. A from-scratch run must create these first.
+- **Cost-optimized, not highly available.** A single `t4g.large` node pinned to one Availability Zone; `metrics-server`, the EBS CSI controller, and CoreDNS each run a single replica; worker nodes run in public subnets without a NAT gateway (they receive public IPs, and the node security group is restricted).
+- **HTTP only (no TLS).** The application and Grafana are exposed via Classic Load Balancers over HTTP, chosen for this short-lived demo. A production setup would terminate HTTPS (an ACM certificate) on an ALB or NLB.
+- **Application metrics.** The app is not instrumented with Prometheus metrics; service monitoring is performed at the pod level (CPU/RAM) via cAdvisor and kube-state-metrics.
+- **CD scope.** The deploy workflow assumes the cluster and `app` namespace already exist; it deploys the application but does not create the cluster or namespace.
+- **Secrets.** The Grafana admin password is supplied at install time (via `--set`) and is not stored in the repository.
