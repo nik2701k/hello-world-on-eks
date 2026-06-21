@@ -39,5 +39,12 @@ $(AWS_PROFILE=project terraform output -raw configure_kubectl)    # set up kubec
 kubectl get nodes
 ```
 
-State is **local** (`terraform.tfstate`, gitignored). For team use, switch to an
-S3 + DynamoDB backend in `versions.tf`.
+## Remote state
+
+State is stored in **S3** with **native S3 state locking** (`use_lockfile = true`, no DynamoDB),
+configured in `backend.tf`:
+
+- Bucket: `terraform-state-826784631306` (ap-south-1, versioned + encrypted), created out of band.
+- Key: `hello-world-eks/terraform.tfstate`.
+
+`terraform init` reads the backend automatically.
