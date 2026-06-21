@@ -97,3 +97,7 @@ It authenticates to AWS with **GitHub OIDC** — no long-lived AWS keys are stor
 The role ARN, ECR registry, and repository are supplied via repository **secrets** — `AWS_ROLE_ARN`, `ECR_REGISTRY`, `ECR_REPOSITORY`.
 
 Steps: assume the role (OIDC) → log in to ECR → build the `linux/arm64` image (QEMU + Buildx) → push tags `<git-sha>` and `latest`. This covers the **CI** (build + publish) half; the CD (deploy) part is not wired up yet.
+
+## Monitoring
+
+Prometheus and Grafana monitoring is documented in [monitoring/README.md](monitoring/README.md).
