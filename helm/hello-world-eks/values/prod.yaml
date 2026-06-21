@@ -2,16 +2,36 @@ replicaCount: 1
 
 image:
   repository: 826784631306.dkr.ecr.ap-south-1.amazonaws.com/hello-world
-  tag: "5f9aaf5"
   pullPolicy: IfNotPresent
+  tag: "5f9aaf5"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
 
 service:
   type: LoadBalancer
   port: 80
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-internal: "false"
 
-containerPort: 8080
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
 
 resources:
   requests:
@@ -21,21 +41,28 @@ resources:
     cpu: 70m
     memory: 64Mi
 
-probes:
-  liveness:
+livenessProbe:
+  httpGet:
     path: /healthz
-    periodSeconds: 10
-    failureThreshold: 3
-  readiness:
-    path: /healthz
-    periodSeconds: 10
-    failureThreshold: 3
-  startup:
-    path: /healthz
-    periodSeconds: 5
-    failureThreshold: 12
+    port: http
+  periodSeconds: 10
+  failureThreshold: 3
 
-hpa:
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 5
+  failureThreshold: 12
+
+autoscaling:
   enabled: true
   minReplicas: 1
   maxReplicas: 2
@@ -44,3 +71,9 @@ hpa:
 pdb:
   enabled: true
   minAvailable: 1
+
+volumes: []
+volumeMounts: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
