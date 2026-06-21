@@ -11,7 +11,7 @@ The `terraform/` directory provisions the EKS cluster and everything the workloa
 - An EKS cluster (Kubernetes `1.35`), built on the `terraform-aws-modules/eks/aws` module, with both public and private API endpoint access enabled.
 - One EKS managed node group (`default`) running ARM Graviton `t4g.large` instances on the `AL2023_ARM_64_STANDARD` AMI, on-demand capacity, with a 20 GiB root volume. It scales between a minimum of 1 and a maximum of 2 nodes (desired 1).
 - The cluster IAM role for the control plane and the node IAM role for the managed node group (both created by the module).
-- Cluster add-ons: CoreDNS, kube-proxy, VPC CNI, the EKS Pod Identity agent, and the AWS EBS CSI driver. The EBS CSI driver gets a dedicated IAM role (`ebs-csi.tf`) that is bound to the `kube-system/ebs-csi-controller-sa` service account through an EKS Pod Identity association.
+- Cluster add-ons: CoreDNS, kube-proxy, VPC CNI, the EKS Pod Identity agent, the AWS EBS CSI driver, and metrics-server (the last three run a single replica for this dev setup). The EBS CSI driver gets a dedicated IAM role (`ebs-csi.tf`) that is bound to the `kube-system/ebs-csi-controller-sa` service account through an EKS Pod Identity association.
 
 ### Node subnet placement
 
@@ -62,7 +62,7 @@ docker buildx build --platform linux/arm64 -t <image>:<tag> app/
 
 ## Helm chart
 
-The `helm/hello-world-eks/` chart deploys the application to the cluster. There is no default `values.yaml`; environment values live under `values/` and must be passed explicitly with `-f`.
+The `helm/hello-world-eks/` chart deploys the application into the `app` namespace. There is no default `values.yaml`; environment values live under `values/` and must be passed explicitly with `-f`.
 
 ### What it deploys
 
@@ -75,28 +75,26 @@ The `helm/hello-world-eks/` chart deploys the application to the cluster. There 
 
 ### Per-environment values
 
-`values/dev.yaml` and `values/prod.yaml` are complete, in-sync values files (image, resources, probes, autoscaling, PDB). Pass one with `-f`.
+`values/dev.yaml` and `values/prod.yaml` are complete, in-sync values files (namespace, image, resources, probes, autoscaling, PDB). The image `tag` is a `<VERSION>` placeholder that the deploy workflow replaces with the built commit SHA. Pass one with `-f`.
 
 ### Usage
 
 ```bash
 helm upgrade --install hello-world helm/hello-world-eks \
-  -f helm/hello-world-eks/values/dev.yaml
+  -n app -f helm/hello-world-eks/values/dev.yaml
 ```
 
 ## CI/CD
 
-A GitHub Actions workflow (`.github/workflows/build.yaml`) builds the container image and pushes it to ECR on every merge to `main` (it also triggers on changes under `app/` and `helm/`, and supports manual `workflow_dispatch`).
+Two GitHub Actions workflows authenticate to AWS with **GitHub OIDC** (no long-lived keys) by assuming the IAM role `arn:aws:iam::826784631306:role/github-actions-hello-world-eks`. The OIDC trust is scoped to this repository (`repo:nik2701k/hello-world-on-eks:*`, audience `sts.amazonaws.com`). The role can push to the `hello-world` ECR repository and has `eks:DescribeCluster` plus an EKS access entry granting `edit` (`AmazonEKSEditPolicy`) in the `app` namespace. The role ARN, ECR registry, and repository come from repository **secrets** (`AWS_ROLE_ARN`, `ECR_REGISTRY`, `ECR_REPOSITORY`).
 
-It authenticates to AWS with **GitHub OIDC** — no long-lived AWS keys are stored. The workflow assumes an IAM role via OIDC:
+### CI — `build.yaml`
 
-- Role ARN: `arn:aws:iam::826784631306:role/github-actions-hello-world-eks`
-- OIDC provider: `token.actions.githubusercontent.com`; trust scoped to this repository (`repo:nik2701k/hello-world-on-eks:*`), audience `sts.amazonaws.com`.
-- Permissions: push to the `hello-world` ECR repository (ECR auth + layer upload + PutImage).
+On merge to `main` (changes under `app/`, `helm/`, or the workflow) or manual `workflow_dispatch`: assume the role → log in to ECR → build the `linux/arm64` image (QEMU + Buildx) → push tags `<git-sha>` and `latest`.
 
-The role ARN, ECR registry, and repository are supplied via repository **secrets** — `AWS_ROLE_ARN`, `ECR_REGISTRY`, `ECR_REPOSITORY`.
+### CD — `deploy.yaml`
 
-Steps: assume the role (OIDC) → log in to ECR → build the `linux/arm64` image (QEMU + Buildx) → push tags `<git-sha>` and `latest`. This covers the **CI** (build + publish) half; the CD (deploy) part is not wired up yet.
+Runs automatically after a successful `build-and-push` run (`workflow_run` trigger): assume the role → `aws eks update-kubeconfig` → substitute the image tag (replace the `<VERSION>` placeholder in `values/dev.yaml` with the built commit SHA) → `helm upgrade --install` into the `app` namespace and wait for the rollout.
 
 ## Monitoring
 
