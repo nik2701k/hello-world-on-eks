@@ -1,5 +1,7 @@
 replicaCount: 1
 
+namespace: app
+
 image:
   repository: 826784631306.dkr.ecr.ap-south-1.amazonaws.com/hello-world
   pullPolicy: IfNotPresent

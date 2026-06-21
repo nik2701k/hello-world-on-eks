@@ -3,6 +3,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "hello-world-eks.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "hello-world-eks.labels" . | nindent 4 }}
 spec:
