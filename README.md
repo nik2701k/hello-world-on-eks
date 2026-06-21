@@ -35,3 +35,27 @@ terraform destroy -var-file=tfvars/dev.tfvars
 ```
 
 After apply, the `configure_kubectl` output prints the `aws eks update-kubeconfig` command to point `kubectl` at the new cluster.
+
+## Go application
+
+The `app/` directory holds the Hello World service, written in Go using only the standard library (`net/http`).
+
+### Endpoints
+
+- `GET /` — returns `Hello World`.
+- `GET /healthz` — returns HTTP 200; used by the Kubernetes liveness, readiness, and startup probes.
+
+The server listens on port `8080`.
+
+### Container image
+
+`app/Dockerfile` is a multi-stage build:
+
+- The build stage uses the `golang` image to compile a static binary (`CGO_ENABLED=0`), cross-compiled to `linux/arm64` to match the Graviton (`t4g`) worker nodes.
+- The final stage is a distroless image (`gcr.io/distroless/static-debian12:nonroot`) containing only the compiled binary — no Go toolchain, shell, or package manager — so the image is small (~14 MB) and runs as a non-root user.
+
+Build the arm64 image:
+
+```bash
+docker buildx build --platform linux/arm64 -t <image>:<tag> app/
+```
