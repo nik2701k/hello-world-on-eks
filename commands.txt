@@ -1,0 +1,71 @@
+# S3 bucket for Terraform remote state
+aws s3api create-bucket --bucket terraform-state-826784631306 --region ap-south-1 --create-bucket-configuration LocationConstraint=ap-south-1 --profile project
+
+# VPC, subnets, internet gateway, route tables
+aws ec2 create-vpc --cidr-block 10.0.0.0/16 --region ap-south-1 --profile project
+
+# Public subnet, ap-south-1a (10.0.0.0/20). Created manually through UI.
+
+# Public subnet, ap-south-1b (10.0.16.0/20). Created manually through UI.south-1b --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=hello-world-public-ap-south-1b},{Key=Tier,Value=public},{Key=Project,Value=hello-world-on-eks},{Key=kubernetes.io/role/elb,Value=1}]" --region ap-south-1 --profile project
+
+# Private subnet, ap-south-1a (10.0.128.0/20). Created manually through UI.
+
+# Private subnet, ap-south-1b (10.0.144.0/20). Created manually through UI.
+
+# Internet gateway. Created manually through UI.
+
+# ECR repository
+# ---------------------------------------------------------------------
+aws ecr create-repository --repository-name hello-world --image-tag-mutability MUTABLE --region ap-south-1 --profile project
+
+# IAM role with a trust policy scoped to this repository's GitHub Actions.
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Federated": "arn:aws:iam::826784631306:oidc-provider/token.actions.githubusercontent.com" },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
+        "StringLike":  { "token.actions.githubusercontent.com:sub": "repo:nik2701k/hello-world-on-eks:*" }
+      }
+    }
+  ]
+}
+
+# Inline policy for the hello-world ECR repository.
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "EcrAuth", "Effect": "Allow", "Action": "ecr:GetAuthorizationToken", "Resource": "*" },
+    {
+      "Sid": "EcrPush",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Resource": "arn:aws:ecr:ap-south-1:826784631306:repository/hello-world"
+    }
+  ]
+}
+
+# Inline policy for the eks access
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EksDescribe",
+      "Effect": "Allow",
+      "Action": "eks:DescribeCluster",
+      "Resource": "arn:aws:eks:ap-south-1:826784631306:cluster/hello-world-eks"
+    }
+  ]
+}
+
