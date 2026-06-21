@@ -2,6 +2,20 @@
 
 A small Hello World service running on Amazon EKS. The repository holds the Terraform that provisions the cluster, the Go application, and the Helm chart used to deploy it.
 
+## Running end-to-end
+
+The stack is brought up in the order below; each step is detailed in the section that follows (and in [terraform/README.md](terraform/README.md) and [monitoring/README.md](monitoring/README.md)). All AWS commands use the `project` profile and region `ap-south-1`.
+
+**Prerequisites** — provisioned out of band (not in this Terraform): a VPC with public and private subnets, an ECR repository, the S3 bucket used for Terraform state, the GitHub Actions OIDC IAM role with an EKS access entry, and the `app` namespace.
+
+1. **Provision the cluster:** `cd terraform && terraform init && terraform apply -var-file=tfvars/dev.tfvars`
+2. **Point kubectl at the cluster:** `aws eks update-kubeconfig --name hello-world-eks --region ap-south-1 --profile project`
+3. **Build and push the image** to ECR — `docker buildx build --platform linux/arm64 ...` — or push to `main` and let CI build it.
+4. **Deploy the app:** `helm upgrade --install hello-world helm/hello-world-eks -n app -f helm/hello-world-eks/values/dev.yaml`
+5. **Install monitoring:** follow [monitoring/README.md](monitoring/README.md).
+
+After the initial setup, a push to `main` triggers CI (build + push to ECR) and then CD (`helm upgrade`) automatically.
+
 ## Terraform (EKS infrastructure)
 
 The `terraform/` directory provisions the EKS cluster and everything the workload needs to run on it. Resources are created in region `ap-south-1` using the `project` AWS named profile.
