@@ -1,0 +1,30 @@
+# kube-prometheus-stack override for the hello-world demo
+
+# Alertmanager not needed for a demo.
+alertmanager:
+  enabled: false
+
+grafana:
+  # Exposed via its own internet-facing Classic Load Balancer (HTTP on port 80).
+  service:
+    type: LoadBalancer
+    port: 80
+  # adminPassword is supplied at install (--set grafana.adminPassword=...), never committed.
+
+prometheus:
+  prometheusSpec:
+    retention: 3d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 350Mi
+      limits:
+        memory: 650Mi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
