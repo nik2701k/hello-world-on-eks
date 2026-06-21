@@ -6,7 +6,7 @@ A small Hello World service running on Amazon EKS. The repository holds the Terr
 
 The stack is brought up in the order below; each step is detailed in the section that follows (and in [terraform/README.md](terraform/README.md) and [monitoring/README.md](monitoring/README.md)). All AWS commands use the `project` profile and region `ap-south-1`.
 
-**Prerequisites** — provisioned out of band (not in this Terraform): a VPC with public and private subnets, an ECR repository, the S3 bucket used for Terraform state, the GitHub Actions OIDC IAM role with an EKS access entry, and the `app` namespace.
+**Prerequisites** — provisioned out of band (not in this Terraform): a VPC with public and private subnets, an ECR repository, the S3 bucket used for Terraform state, the GitHub Actions OIDC IAM role with an EKS access entry, and the `app` namespace. All the AWS CLI commands to create these resources manually are in [commands.txt](commands.txt).
 
 1. **Provision the cluster:** `cd terraform && terraform init && terraform apply -var-file=tfvars/dev.tfvars`
 2. **Point kubectl at the cluster:** `aws eks update-kubeconfig --name hello-world-eks --region ap-south-1 --profile project`
